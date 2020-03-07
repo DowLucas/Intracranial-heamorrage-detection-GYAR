@@ -5,7 +5,7 @@ Method for classifying intracranial hemorrhage in paitents CT-Scans, step by ste
 
 
 
-Import modules which makes calculations easier'''
+'''Import modules which makes calculations easier'''
 '''Numpy is a library which helps with array/list/tensor manipulation such as resizing arrays and data'''
 import numpy as np
 
@@ -21,12 +21,23 @@ import pandas as pd
 '''Used to time how long different processes take'''
 import time
 
-'''The data is found inside a ZIP archive. This file is over 150 GB in size so it would 
+'''Random for doing random operations'''
+import random
+
+'''For showing images'''
+import matplotlib.pyplot as plt
+
+import cv2
+
+'''The data is found inside a ZIP archive. This file is over 150 GB in size so it would
 not be a good idea to extract all the images directly onto a hard drive, Therefore, a library called
 zipfile is used to extract the images'''
 from zipfile import ZipFile
 
-'''The labels (the data the defines if and which type of intracranial hemorrhage is present) is 
+'''Able to resize pixel arrays'''
+from skimage.transform import resize
+
+'''The labels (the data the defines if and which type of intracranial hemorrhage is present) is
 stored in a csv file. By using pandas build in read_csv function, the file can be read and stored in a table/dataframe
 the dataframe will receive the variable "df", we can also define "csvFile" and set it equal to the name of the file'''
 
@@ -49,7 +60,7 @@ In order to see how the table looks, df.head() is run to show the first 5 rows o
 print(len(df))
 '''Length: 4045572 rows'''
 
-'''Each ID in the dataframe has 6 rows for each of the sub types of intraccranial hemorrhage, meaning that the there are 674262 unique 
+'''Each ID in the dataframe has 6 rows for each of the sub types of intraccranial hemorrhage, meaning that the there are 674262 unique
 IDs in the dataframe, example ID_1 has 6 rows -> ID_1_subtype1, ID_1_subtype2 ... ID_1_subtype6'''
 
 '''The goal is to create a dictionary where the input is unique ID (without the subtype) and the definition/output is a scalar value which is
@@ -57,7 +68,7 @@ IDs in the dataframe, example ID_1 has 6 rows -> ID_1_subtype1, ID_1_subtype2 ..
  unique ID is suffering from epidural intracranial hemorrhage, the output/definition will be a 1 and if the patent is not suffering from
  any subtype, the value will be 0'''
 
-'''First of all, a new column in the dataframe variable "df" has to be created where the subtype in the ID removed for instance ID_1_subtype1 
+'''First of all, a new column in the dataframe variable "df" has to be created where the subtype in the ID removed for instance ID_1_subtype1
 would be changed to ID_1'''
 
 df["OnlyID"] = df["ID"].apply(lambda x: x.replace("_epidural", "").replace("_intraparenchymal", "").replace("_intraventricular", "").replace(
@@ -92,12 +103,12 @@ for row in df.iterrows():
     # Prints only the first row of the dataframe
     print(row) if row[0] == 0 else None
     '''Lets take a look at what the variable "row" stores
-    
+
         (0, ID        ID_63eb1e259_epidural
         Label                         0
         OnlyID             ID_63eb1e259
-        Name: 0, dtype: object) 
-        
+        Name: 0, dtype: object)
+
     Looks like the row object stores a so called python tuple where the first element indicates the row index
     within the dataframe and second element is a dictionary of length 3, where each entry represents each column
     in the dataframe, ID, Label and OnlyID'''
@@ -117,8 +128,8 @@ for row in df.iterrows():
         The first row of the dataframe has an ID of 'ID_63eb1e259' and a label of '0'
     '''
 
-    '''Now that the ID and label of the row has been defined, a check has to be conducted to see if the 
-    ID or is not already an element/key of the data dictionary created earlier. 
+    '''Now that the ID and label of the row has been defined, a check has to be conducted to see if the
+    ID or is not already an element/key of the data dictionary created earlier.
     This can be done be done using an if statement'''
 
     # data.keys() is a function which yields an array of all the keys in the data dictionary
@@ -132,8 +143,8 @@ for row in df.iterrows():
         # This code will be executed if the ID IS a key in "data" dictionary
         '''If the ID is a key of the dictionary, we have to check if the current value/defentition of the value
         is 0 or 1 since this will determine if the value should be altered or not. If the value is 0, and the new value
-        is 1, then we change the value to 1 since intracranial hemorrhage is present the patient's brain. 
-        If the value that already exists is 1 and the new value is 0, then no action is necessary because 
+        is 1, then we change the value to 1 since intracranial hemorrhage is present the patient's brain.
+        If the value that already exists is 1 and the new value is 0, then no action is necessary because
         intracranial hemorrhageis already present as another subtype in the patient's brain'''
         # This can be done by the following
         # This is basically saying: Set the label of the data entry with ID -> ID equal to 1 if and only if the
@@ -194,7 +205,7 @@ extractImagePath = "GYARimageData"
 os.mkdir(extractImagePath) if not os.path.exists(extractImagePath) else None
 
 # Variable for storing all the already extracted images
-extracedImagesPath = "extractedImages.pickle"
+extracedImagesPath = "extractedImageId.pickle"
 IDsOfExtractedImages = pickle.load(open(extracedImagesPath, "rb")) if os.path.isfile(extracedImagesPath) else []
 
 # Number of images to be extracted for each label (positive and negative)
@@ -214,57 +225,61 @@ def getTrainImages(wholeList):
 
     return returnList
 
+# The extraction should not occur everytime so a boolean varible is set and determinds if the images should be extracted or not
+extract = False
+
 '''Now that some varibles have been defined the image extraction process can begin'''
 
 # Opeing the "zipfileName" which was defined above, "r" stands for read. The file is assigned the variable "zip"
-with ZipFile(zipfileName, "r") as ZIP:
-    # "allImages" is defined which will store all the file paths to the images within the zip archive
-    allImages = getTrainImages(ZIP.namelist())
-    print("Starting extraction of images where patients have NOT been diagnosed with IH")
+if extract:
+    with ZipFile(zipfileName, "r") as ZIP:
+        # "allImages" is defined which will store all the file paths to the images within the zip archive
+        allImages = getTrainImages(ZIP.namelist())
+        print("Starting extraction of images where patients have NOT been diagnosed with IH")
 
-    # Iterating over each key in the "data" dictionary
-    # enumerate function sets the value "n" equal to the current index number of the data.keys() array, 1, 2, 3 and so on.
-    for key in data.keys():
-        # "image_path" if the full path to the image inside the .ZIP archive. The image is a DICOM image, hence the
-        # .dcm extension (this is similar to JPEG or PNG)
-        image_path = zipPath + key + ".dcm"
+        # Iterating over each key in the "data" dictionary
+        # enumerate function sets the value "n" equal to the current index number of the data.keys() array, 1, 2, 3 and so on.
+        for key in data.keys():
+            # "image_path" if the full path to the image inside the .ZIP archive. The image is a DICOM image, hence the
+            # .dcm extension (this is similar to JPEG or PNG)
+            image_path = zipPath + key + ".dcm"
 
-        # If the label (0 or 1) is equal to 0 and if it has not already been extracted -> extract it and add it to the
-        # extracted images array
-        if data[key] == 0:
-            # Extracting image to previously defined image path
-            ZIP.extract(image_path, path=extractImagePath) if not os.path.exists(extractImagePath+"/stage_1_train_images/"+key+".dcm") else None
+            # If the label (0 or 1) is equal to 0 and if it has not already been extracted -> extract it and add it to the
+            # extracted images array
+            if data[key] == 0:
+                # Extracting image to previously defined image path
+                ZIP.extract(image_path, path=extractImagePath) if not os.path.exists(extractImagePath+"/stage_1_train_images/"+key+".dcm") else None
 
-            # Appending key to array
-            IDsOfExtractedImages.append(key)
+                # Appending key to array
+                IDsOfExtractedImages.append(key)
 
-            # Adding 1 to number of images extracted
-            numberOfImagesExtracted += 1
+                # Adding 1 to number of images extracted
+                numberOfImagesExtracted += 1
 
-        # If the desired number of images have been extracted (in this case 55000) break the loop
-        if numberOfImagesExtracted == numberOfimagesToExtract:
-            break
-        elif numberOfImagesExtracted%1000 == 0:
-            # If the number of images extracted mod 1000 is equal to 0 then print the number of images extracted
-            #print(f"{numberOfImagesExtracted} Images have been extracted...")
-            pass
+            # If the desired number of images have been extracted (in this case 55000) break the loop
+            if numberOfImagesExtracted == numberOfimagesToExtract:
+                break
+            elif numberOfImagesExtracted%1000 == 0:
+                # If the number of images extracted mod 1000 is equal to 0 then print the number of images extracted
+                #print(f"{numberOfImagesExtracted} Images have been extracted...")
+                pass
 
-    print("Starting extraction of images where patients have been diagnosed with IH\n")
-    numberOfImagesExtracted = 0
+        print("Starting extraction of images where patients have been diagnosed with IH\n")
+        numberOfImagesExtracted = 0
 
-    # This part is similar to the one above, however, it extracts images with label of 1 instead of 0
-    for key in data.keys():
-        image_path = zipPath + key + ".dcm"
-        # here data[key] == 1 instead of == 0 in the one above.
-        if data[key] == 1:
-            ZIP.extract(image_path, path=extractImagePath) if not os.path.exists(extractImagePath+"/stage_1_train_images/"+key+".dcm") else None
-            IDsOfExtractedImages.append(key)
-            numberOfImagesExtracted += 1
-        if numberOfImagesExtracted == numberOfimagesToExtract:
-            break
-        elif numberOfImagesExtracted%1000 == 0:
-            #print(f"{numberOfImagesExtracted} Images have been extracted...")
-            pass
+        # This part is similar to the one above, however, it extracts images with label of 1 instead of 0
+        for key in data.keys():
+            image_path = zipPath + key + ".dcm"
+            # here data[key] == 1 instead of == 0 in the one above.
+            if data[key] == 1:
+                ZIP.extract(image_path, path=extractImagePath) if not os.path.exists(extractImagePath+"/stage_1_train_images/"+key+".dcm") else None
+                IDsOfExtractedImages.append(key)
+                numberOfImagesExtracted += 1
+            if numberOfImagesExtracted == numberOfimagesToExtract:
+                break
+            elif numberOfImagesExtracted%1000 == 0:
+                #print(f"{numberOfImagesExtracted} Images have been extracted...")
+                pass
 # Create a file with all the IDs of the extracted files only if it has not yet been created
 pickle.dump(IDsOfExtractedImages, open("IDsOfExtractedImages.pickle", "wb")) if not os.path.exists("IDsOfExtractedImages.pickle") else None
 
@@ -287,6 +302,7 @@ distribution = {"positive": 0, "negative": 0}
 newData = {}
 
 # Iterate over all the extracted images
+
 for image in os.listdir(extractImagePath+"/stage_1_train_images"):
     # Define the image name by removing the file extension .dcm
     # This replaces the extension .dcm with nothing, yielding only the image name, i.e the ID
@@ -332,9 +348,11 @@ import pydicom
 import math
 
 # In order to free up memory on the computer, some variables which are no longer used are deleted
-del distribution
-del allImages
-del df
+try:
+    del distribution
+    del allImages
+    del df
+except: pass
 
 '''Lets start as before, by defining variables which will be used in this process'''
 
@@ -350,12 +368,12 @@ dataDivided = {}
 # Creating a list/array of the keys within the "data" dictionary
 keys = list(data.keys())
 
+# Creating an evaluate images dictionary which will be used later to evaluate the images
+# The last 5000 images of the data dictionary will be the evaluation images as seen in the coming section.
+evaluate_images = {i: data[i] for i in keys[-5000:]}
 
 numFiles = len(os.listdir("GYARprocessedData"))
 
-print(len(keys))
-
-#print(data.values())
 # Next step is to iterate over all the keys in the "data" dictionary
 for n, image in enumerate(keys):
     # Check if file already exists
@@ -437,7 +455,6 @@ for n, image in enumerate(keys):
     Therefore, a function called resize within the sklearn (skimage) library is used to resize the pixel_array to a 100 by 100
     image.'''
 
-    from skimage.transform import resize
 
     # Lets redefine the "pixelArray" varible by applying the resize function to it
     # Recall that "PIXEL_SIZE" is set to 100 so the new array should have shape (100, 100)
@@ -511,10 +528,23 @@ to 0 and 1 depending on the label'''
 
 '''First of all, a library called tensorflow will be used for this step. It is a module made by google which uses an API
 called Keras to create neural networks'''
-from tensorflow.python.keras.models import Sequential
-from tensorflow.python.keras.layers import Dense, Dropout, Activation, Flatten
-from tensorflow.python.keras.callbacks import TensorBoard
-from tensorflow.python.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten
+from tensorflow.keras.callbacks import TensorBoard
+from tensorflow.keras.layers import Conv2D, MaxPooling2D
+import tensorflow as tf
+
+tf.get_logger().setLevel('INFO')
+
+
+physical_devices = tf.config.experimental.list_physical_devices(device_type=None)
+print(tf.test.is_gpu_available())
+try:
+  tf.config.experimental.set_memory_growth(physical_devices[0], True)
+except:
+  # Invalid device or cannot modify virtual devices once initialized.
+  pass
 
 '''When a model is after it has been trained, the weights need to correspond to the same size neural network as it was
 trained on, otherwise and error will occur. This is why the naming of each model file will contain specific information
@@ -530,7 +560,7 @@ def loadInTrainingData(FromNumFiles, ToNumFiles):
     TotalNumberOfFiles = (ToNumFiles - FromNumFiles)*5000
 
     # Defining the X-data (the pixel array) and the y-data (the label either 0 or 1)
-    y, X = np.zeros((TotalNumberOfFiles, 1)), np.zeros((TotalNumberOfFiles, PIXEL_SIZE, PIXEL_SIZE))
+    y, X = np.zeros((TotalNumberOfFiles, 1)), np.zeros((TotalNumberOfFiles, PIXEL_SIZE, PIXEL_SIZE), dtype=np.float32)
 
     # Setting the index in which place the next entry will be inserted into the arrays above to 0
     index = 0
@@ -581,7 +611,8 @@ else:
     else:
         Evaluate = False
         print("Nothing has been selected, exiting program")
-        exit()
+        #TODO put back exit
+        #exit()
 
 
 '''Now, the create model function can be created. It will take in several argumnets such as the amount of convolutional
@@ -594,12 +625,12 @@ def createModel(CONV_LAYERS, CONV_LAYER_SIZE, DENSE_LAYERS, DENSE_LAYER_SIZE, BA
     # neural network modal so it can be replicated at a later date for evaluation.
     lf = LOSS_FUNCTION.replace("_", "-")
     global MODEL_NAME
-    MODEL_NAME = f"R-gyar-prototype-model_convs-{CONV_LAYERS}_convnodes-{CONV_LAYER_SIZE}_denses-{DENSE_LAYERS}_densenodes-{DENSE_LAYER_SIZE}_batch-{BATCH_SIZE}_opt-{OPTIMIZER}_loss-{lf}_epochs-{EPOCHS}_time-{round(time.time())}"
+    MODEL_NAME = f"R-gyar-model_convs-{CONV_LAYERS}_convnodes-{CONV_LAYER_SIZE}_denses-{DENSE_LAYERS}_densenodes-{DENSE_LAYER_SIZE}_batch-{BATCH_SIZE}_opt-{OPTIMIZER}_loss-{lf}_epochs-{EPOCHS}_time-{round(time.time())}"
 
     global tensorboard
-    # Creating tensorboard object, this can be used to view metrics and graphs of how the well the neural network is
-    # training
-    tensorboard = TensorBoard(log_dir='GYARlogs/{}'.format(MODEL_NAME))
+    # Creating tensorboard object, this can be used to view metrics and graphs of how the well the neural network is training
+    #tensorboard = TensorBoard(log_dir='GYARlogs\\{}'.format(MODEL_NAME))
+    tensorboard = TensorBoard(log_dir='GYARlogs\\{}'.format(MODEL_NAME), histogram_freq=1, profile_batch=3)
 
     # If the model already exist raise a file exists error else, create the model.
     if MODEL_NAME in os.listdir('GYARlogs'):
@@ -652,6 +683,9 @@ def createModel(CONV_LAYERS, CONV_LAYER_SIZE, DENSE_LAYERS, DENSE_LAYER_SIZE, BA
         # Returning the model (output)
         return model
 
+
+
+
 '''Now that the createmodel function has been created, a trainmodel function needs to be set up. This is where training
 actually takes place and where the images are inserted into the neural network and the neural network is able to change
 its weights and biases to maximize accuracy and minimize loss. '''
@@ -667,14 +701,18 @@ def train_model(input_data, output_data):
     # of the neural network can be trained. The amount of variants (permutations) of neural nets can be calculated by
     # multiplying the length of each array which one another. If all the arrays have length one, only on model will be
     # created.
-    CONV_LAYERS = [2]
-    CONV_LAYER_SIZE = [20]
-    DENSE_LAYERS = [2]
-    DENSE_LAYER_SIZE = [128]
-    BATCH_SIZE = [128]
-    EPOCHS = [20]
-    OPTIMIZERS = ["Nadam"]
-    LOSS_FUNCTIONS = ["huber_loss"]
+    CONV_LAYERS = [1,2,3]
+    CONV_LAYER_SIZE = [10, 20]
+    DENSE_LAYERS = [1,2,3]
+    DENSE_LAYER_SIZE = [32, 64, 128]
+    BATCH_SIZE = [64, 128]
+    EPOCHS = [10]
+    OPTIMIZERS = ["Nadam", "adam"]
+    LOSS_FUNCTIONS = ["huber_loss", "binary_crossentropy"]
+
+    # The number of models is number of combinations that exist
+    number_of_models = len(CONV_LAYERS)*len(CONV_LAYER_SIZE)*len(DENSE_LAYERS)*len(DENSE_LAYER_SIZE)*len(BATCH_SIZE)*len(EPOCHS)*len(OPTIMIZERS)*len(LOSS_FUNCTIONS)
+    print(f"Number of models that will be created is: {number_of_models}")
 
     # Iterating over each entry in the different arrays.
     for conv_layers in CONV_LAYERS:
@@ -686,11 +724,8 @@ def train_model(input_data, output_data):
                             for loss_function in LOSS_FUNCTIONS:
                                 for epochs in EPOCHS:
                                     # Creating the model, based on the current set of values (lower case varibles)
-                                    # TODO add this to git
-                                    model = createModel(CONV_LAYERS=conv_layers, CONV_LAYER_SIZE=conv_layer_size,
-                                                        DENSE_LAYERS=dense_layers,
-                                                        DENSE_LAYER_SIZE=dense_layer_size, BATCH_SIZE=batch,
-                                                        OPTIMIZER=optimizer, LOSS_FUNCTION=loss_function, EPOCHS=epochs)
+                                    model = createModel(CONV_LAYERS=conv_layers, CONV_LAYER_SIZE=conv_layer_size, DENSE_LAYERS=dense_layers,
+                                                        DENSE_LAYER_SIZE=dense_layer_size, BATCH_SIZE=batch, OPTIMIZER=optimizer, LOSS_FUNCTION=loss_function, EPOCHS=epochs)
 
                                     # Compile the model. Sets it up for being trained.
                                     model.compile(loss=loss_function,
@@ -742,6 +777,8 @@ def train_model(input_data, output_data):
                                     model.fit(input_data, output_data, batch_size=batch, epochs=epochs,
                                               callbacks=[tensorboard], shuffle=True)
 
+                                    del input_data
+                                    del output_data
                                     # Now that the model has been trained on the first portion of the training data (50000 images),
                                     # it will be trained on the remaining 55000 images, which is file 11 to 21, 11 files in total,
                                     # 22 not included
@@ -761,27 +798,64 @@ def train_model(input_data, output_data):
 '''Now that the trainmodel function has been created, a evaluate function needs to be created. This function will evaluate 
 a chosen neural network or all existing neural networks using the 22nd file which is named evaluate_data. 
 
-For this step, a class will be used instead of a function
+For this step, a class will be used instead of a function0
 
 '''
 
-'''
+import json
+# This function will be used to train the 20 best models from all the models that will be trained
+def train_model_from_input(filepath):
+    d = json.load(open(filepath, "r"))
+    epochs = 20
+    for model_params in d.values():
+        input_data, output_data = loadInTrainingData(1, 11)
+        input_data = np.reshape(input_data, (len(input_data), PIXEL_SIZE, PIXEL_SIZE, 1))
 
-    The following section of the code is used to evaluate the trained models and to compare them. It also acts as
-    a user interface for the user to select a model. There are not as much explanations to the code in this section due
-    to it not being the main focus of the investigation
-    
-    The following applies to the 'EvaluateHandler' class
+        conv_layers = model_params["conv_layers"]
+        conv_layer_size = model_params["conv_nodes"]
+        dense_layers = model_params["dense_layers"]
+        dense_layer_size = model_params["dense_nodes"]
+        batch = model_params["batch_size"]
+        optimizer = model_params["optimizer"]
+        loss_function = model_params["loss_function"]
 
-'''
 
+        model = createModel(CONV_LAYERS=conv_layers, CONV_LAYER_SIZE=conv_layer_size, DENSE_LAYERS=dense_layers,
+                            DENSE_LAYER_SIZE=dense_layer_size, BATCH_SIZE=batch, OPTIMIZER=optimizer,
+                            LOSS_FUNCTION=loss_function, EPOCHS=epochs)
+
+        model.compile(loss=loss_function,
+                      optimizer=optimizer,
+                      metrics=['accuracy'])
+
+
+        print("Commencing Training...")
+        model.fit(input_data, output_data, batch_size=batch, epochs=epochs,
+                  callbacks=[tensorboard], shuffle=True)
+
+        del input_data
+        del output_data
+        input_data, output_data = loadInTrainingData(11, 22)
+
+        input_data = np.reshape(input_data, (len(input_data), PIXEL_SIZE, PIXEL_SIZE, 1))
+
+        model.fit(input_data, output_data, batch_size=batch, epochs=epochs,
+                  callbacks=[tensorboard], shuffle=True)
+
+        model.save_weights('GYARmodels/{}.h5'.format(MODEL_NAME))
+
+
+
+import shutil
 class EvaluateHandler:
     fileLocation = "GYARmodels"
 
     def __init__(self, minago=None):
+        
+        self.evaluate_X_data, self.evaluate_y_data = loadInTrainingData(22, 23)
+        self.evaluate_X_data = np.reshape(self.evaluate_X_data, (len(self.evaluate_X_data), PIXEL_SIZE, PIXEL_SIZE, 1))
 
         self.filedata = {}
-
         self.models = {}
         n = 0
         if minago != None:
@@ -816,6 +890,7 @@ class EvaluateHandler:
             f.write("loss,accuracy,0 true,1 true,conv_layers,conv_nodes,dense_layers,dense_nodes,optimizer,loss_function,epoch,batch_size\n")
             f.close()
 
+
     def generateDataFile(self):
         os.mkdir("GYAREvaluations") if not os.path.exists("GYAREvaluations") else None
 
@@ -847,7 +922,7 @@ class EvaluateHandler:
 
         print("\n|*** Evaluation Complete ***|\n")
 
-    def _eval(self, modelname):
+    def _strip_modelname(self, modelname):
         CONV_LAYERS = int(modelname.split("convs")[1][1:].split("_")[0])
         CONV_LAYER_SIZE = int(modelname.split("convnodes")[1][1:].split("_")[0])
         DENSE_LAYERS = int(modelname.split("denses")[1][1:].split("_")[0])
@@ -858,14 +933,17 @@ class EvaluateHandler:
         try:
             OPTIMIZER = str(modelname.split("opt")[1][1:].split("_")[0])
             LOSS_FUNCTION = str(modelname.split("loss", 1)[1][1:].split("_")[0]).replace("-", "_")
-            print(LOSS_FUNCTION)
         except:
-            print("No Optimizer or loss function found!")
             OPTIMIZER = "adam"
             LOSS_FUNCTION = "binary_crossentropy"
 
-        networkDetails = f"CONVS {CONV_LAYERS}, CONVNODES {CONV_LAYER_SIZE}, DENSE LAYERS {DENSE_LAYERS}, DENSENODES {DENSE_LAYER_SIZE}, BATCH {BATCH_SIZE}, OPTIMIZER {OPTIMIZER}, LOSS {LOSS_FUNCTION}, EPOCHS {EPOCHS}"
+        return CONV_LAYERS, CONV_LAYER_SIZE, DENSE_LAYERS, DENSE_LAYER_SIZE, BATCH_SIZE, EPOCHS, OPTIMIZER, LOSS_FUNCTION
 
+
+    def _eval(self, modelname):
+        CONV_LAYERS, CONV_LAYER_SIZE, DENSE_LAYERS, DENSE_LAYER_SIZE, BATCH_SIZE, EPOCHS, OPTIMIZER, LOSS_FUNCTION = self._strip_modelname(modelname)
+
+        networkDetails = f"CONVS {CONV_LAYERS}, CONVNODES {CONV_LAYER_SIZE}, DENSE LAYERS {DENSE_LAYERS}, DENSENODES {DENSE_LAYER_SIZE}, BATCH {BATCH_SIZE}, OPTIMIZER {OPTIMIZER}, LOSS {LOSS_FUNCTION}, EPOCHS {EPOCHS}"
         print(networkDetails)
 
         model = createModel(CONV_LAYERS, CONV_LAYER_SIZE, DENSE_LAYERS, DENSE_LAYER_SIZE, BATCH_SIZE, OPTIMIZER,
@@ -875,19 +953,21 @@ class EvaluateHandler:
                       optimizer=OPTIMIZER,
                       metrics=['accuracy'])
 
-        evaluate_X_data, evaluate_y_data = loadInTrainingData(22, 23)
+        loss, acc = model.evaluate(self.evaluate_X_data, self.evaluate_y_data)
 
-        evaluate_X_data = np.reshape(evaluate_X_data, (len(evaluate_X_data), PIXEL_SIZE, PIXEL_SIZE, 1))
+        predictions = model.predict(self.evaluate_X_data)
 
-        loss, acc = model.evaluate(evaluate_X_data, evaluate_y_data)
+        predictions = np.array(predictions)
+        save_predictions = np.array(list(zip(predictions, self.evaluate_y_data)))
+        np.save(f"GYARPredictions/{acc}_{loss}_{int(time.time())}.npy", save_predictions)
 
-        predictions = model.predict(evaluate_X_data)
 
-        correct = [(evaluate_y_data[x], predictions[x], np.round(predictions[x], decimals=0) == evaluate_y_data[x]) for x in range(len(evaluate_y_data))]
+        correct = [(self.evaluate_y_data[x], predictions[x], np.round(predictions[x], decimals=0) == self.evaluate_y_data[x]) for x in range(len(self.evaluate_y_data))]
         displayValues = False
         if displayValues:
             for x in correct:
                 print(x[0], x[1], x[2])
+
 
         a = list(map(lambda x: x[0], correct))
 
@@ -903,6 +983,7 @@ class EvaluateHandler:
                 dis["1 true"] += 1
 
 
+
         return {"Loss": round(loss, 6), "Accuracy": acc, "Distribution": dis, "Model Info": {"Conv. Layers": CONV_LAYERS,
                                                                                    "Conv. Nodes": CONV_LAYER_SIZE,
                                                                                    "Dense Layers": DENSE_LAYERS,
@@ -913,11 +994,78 @@ class EvaluateHandler:
                                                                                    "Batch Size": BATCH_SIZE}}
 
 
+    def _ids_and_labels(self):
+        il = pickle.load(open("IDandLabels.pickle", "rb")) if os.path.isfile("IDandLabels.pickle") else None
+        return il if il is not None else False
+
+    def showim(self, ds, ID=None):
+        plt.imshow(ds.pixel_array, cmap=plt.cm.bone)
+        plt.show()
+
+    def moveDCM(self, from_path, to_path):
+        shutil.copyfile(from_path, to_path)
+
+    def evaluateDicomImage(self, ID, modelname):
+
+        if ID not in list(evaluate_images.keys()):
+            raise FileExistsError("File not found in evaluate dataset")
+
+        place_image_dir = "GYAR Specific Image Testing"
+
+        os.mkdir(place_image_dir) if not os.path.exists(place_image_dir) else None
+        if not os.path.isfile(place_image_dir+"/keep.csv"):
+            with open(place_image_dir+"/results.csv", "w") as f:
+                f.write("ID,pred,actual\n")
+                f.close()
+
+        imagePath = extractImagePath + "/stage_1_train_images/" + ID + ".dcm"
+        ds = pydicom.dcmread(imagePath)
+        pixelArray = ds.pixel_array
+
+        X = resize(pixelArray, (PIXEL_SIZE, PIXEL_SIZE))
+        X = np.reshape(X, (1, PIXEL_SIZE, PIXEL_SIZE, 1))
+
+
+        CONV_LAYERS, CONV_LAYER_SIZE, DENSE_LAYERS, DENSE_LAYER_SIZE, BATCH_SIZE, EPOCHS, OPTIMIZER, LOSS_FUNCTION = self._strip_modelname(modelname)
+        model = createModel(CONV_LAYERS, CONV_LAYER_SIZE, DENSE_LAYERS, DENSE_LAYER_SIZE, BATCH_SIZE, OPTIMIZER,
+                            LOSS_FUNCTION, EPOCHS)
+        model.load_weights('GYARmodels/{}'.format(modelname))
+        model.compile(loss=LOSS_FUNCTION,
+                      optimizer=OPTIMIZER,
+                      metrics=['accuracy'])
+
+        pred = model.predict(X)
+
+
+        print(ID, pred[0][0], evaluate_images[ID])
+
+        from_path = "GYARImageData/stage_1_train_images/" + ID + ".dcm"
+        to_path = place_image_dir + "/" + ID + ".dcm"
+        self.moveDCM(from_path, to_path)
+
+        shutil.copyfile(to_path, place_image_dir+"/result/"+ID+".dcm")
+        os.remove(to_path)
+        print(f"Keeping {ID}...")
+        with open(place_image_dir + "/results.csv", "a") as f:
+            f.write(f"{ID},{np.round(pred[0][0], 5)},{evaluate_images[ID]}\n")
+            f.close()
+
+
+def askToDo(text, confirm_str, no_str):
+    ans = ""
+    tries = 0
+    while ans != confirm_str:
+        ans = input(text)
+        tries += 1
+        if tries == 3 or ans == no_str:
+            return False
+    return True
+
+
 
 #
 # # If Train is set to True, commence training
 if Train:
-
     # Creating X, y training data consisting of 50000 which is 10 files, hence file 1 to 10, 11 is not included
     X, y = loadInTrainingData(1, 11)
 
@@ -931,11 +1079,9 @@ if Train:
         X -> (50000, 100, 100, 1) y -> (50000, 1)
 
     '''
-
     # Now, lets call the train_model function and insert the X and y data previously created
     train_model(X, y)
 if Evaluate:
-
     minago = input("How many minutes ago should the models be picked from? (enter int, -1 for all models): ")
 
     if minago == "-1":
@@ -947,5 +1093,10 @@ if Evaluate:
             print("Error: ", e)
             minago=None
     EHandler = EvaluateHandler(minago)
+    ask_to_evaluate_images = askToDo("Do you want to evaluate each image individually? (y/n):", "y", "n")
+    if ask_to_evaluate_images:
+        for ID in list(evaluate_images.keys()):
+            EHandler.evaluateDicomImage(ID, "R-gyar-model_convs-2_convnodes-20_denses-2_densenodes-128_batch-128_opt-Nadam_loss-huber-loss_epochs-15_time-1579187453.h5")
     EHandler.Evaluate()
+
 
