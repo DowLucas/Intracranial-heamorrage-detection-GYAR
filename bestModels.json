@@ -1,0 +1,182 @@
+{
+  "15": {
+    "conv_layers": 1,
+    "conv_nodes": 10,
+    "dense_layers": 1,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "huber_loss",
+    "batch_size": 64
+  },
+  "302": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 2,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "huber_loss",
+    "batch_size": 128
+  },
+  "277": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 1,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "huber_loss",
+    "batch_size": 128
+  },
+  "281": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 1,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "huber_loss",
+    "batch_size": 64
+  },
+  "300": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 2,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "binary_crossentropy",
+    "batch_size": 128
+  },
+  "278": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 1,
+    "dense_nodes": 128,
+    "optimizer": "adam",
+    "loss_function": "binary_crossentropy",
+    "batch_size": 64
+  },
+  "136": {
+    "conv_layers": 1,
+    "conv_nodes": 20,
+    "dense_layers": 1,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "huber_loss",
+    "batch_size": 64
+  },
+  "299": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 2,
+    "dense_nodes": 128,
+    "optimizer": "adam",
+    "loss_function": "huber_loss",
+    "batch_size": 128
+  },
+  "58": {
+    "conv_layers": 1,
+    "conv_nodes": 10,
+    "dense_layers": 2,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "huber_loss",
+    "batch_size": 128
+  },
+  "327": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 3,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "binary_crossentropy",
+    "batch_size": 128
+  },
+  "275": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 1,
+    "dense_nodes": 128,
+    "optimizer": "adam",
+    "loss_function": "huber_loss",
+    "batch_size": 128
+  },
+  "56": {
+    "conv_layers": 1,
+    "conv_nodes": 10,
+    "dense_layers": 2,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "binary_crossentropy",
+    "batch_size": 128
+  },
+  "74": {
+    "conv_layers": 1,
+    "conv_nodes": 10,
+    "dense_layers": 2,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "huber_loss",
+    "batch_size": 64
+  },
+  "156": {
+    "conv_layers": 1,
+    "conv_nodes": 20,
+    "dense_layers": 2,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "huber_loss",
+    "batch_size": 128
+  },
+  "276": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 1,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "binary_crossentropy",
+    "batch_size": 128
+  },
+  "3": {
+    "conv_layers": 1,
+    "conv_nodes": 10,
+    "dense_layers": 1,
+    "dense_nodes": 128,
+    "optimizer": "adam",
+    "loss_function": "huber_loss",
+    "batch_size": 128
+  },
+  "296": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 1,
+    "dense_nodes": 64,
+    "optimizer": "Nadam",
+    "loss_function": "binary_crossentropy",
+    "batch_size": 64
+  },
+  "279": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 1,
+    "dense_nodes": 128,
+    "optimizer": "adam",
+    "loss_function": "huber_loss",
+    "batch_size": 64
+  },
+  "280": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 1,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "binary_crossentropy",
+    "batch_size": 64
+  },
+  "308": {
+    "conv_layers": 2,
+    "conv_nodes": 20,
+    "dense_layers": 2,
+    "dense_nodes": 128,
+    "optimizer": "Nadam",
+    "loss_function": "huber_loss",
+    "batch_size": 64
+  }
+}
